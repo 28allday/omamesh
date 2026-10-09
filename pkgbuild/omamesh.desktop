@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Omamesh
+GenericName=Photo to 3D Model
+Comment=Turn photos into textured 3D models
+Exec=omamesh %F
+Icon=omamesh
+Terminal=false
+Categories=Graphics;3DGraphics;
+MimeType=image/jpeg;image/png;image/webp;image/bmp;image/tiff;model/gltf-binary;
+Keywords=omarchy;3d;mesh;glb;model;trellis;
+StartupWMClass=omamesh

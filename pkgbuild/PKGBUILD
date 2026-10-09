@@ -1,0 +1,43 @@
+# Maintainer: 28allday
+
+pkgname=omamesh
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Turn photos into textured 3D models on your own NVIDIA GPU'
+arch=('x86_64')
+url='https://github.com/28allday/omamesh'
+license=('MIT')
+install='omamesh.install'
+options=('!debug')
+depends=('hicolor-icon-theme' 'qt6-base' 'qt6-declarative' 'qt6-quick3d' 'qt6-imageformats'
+         'xdg-desktop-portal' 'bash' 'bzip2' 'curl' 'git' 'pciutils' 'tar')
+optdepends=('blender: open models in Blender, and export them')
+makedepends=('gcc' 'make')
+source=()
+sha256sums=()
+
+# Builds the working tree; ./bin/install runs it.
+build() {
+  cd "$startdir/.."
+  ./bin/build
+}
+
+package() {
+  cd "$startdir/.."
+  /usr/bin/install -Dm755 build/omamesh "$pkgdir/usr/bin/omamesh"
+
+  # The engine's code; its data goes to each user's ~/.local/share/omamesh/engine.
+  local engine="$pkgdir/usr/share/omamesh/engine"
+  /usr/bin/install -Dm755 engine/install.sh "$engine/install.sh"
+  /usr/bin/install -Dm755 engine/build-ext.sh "$engine/build-ext.sh"
+  /usr/bin/install -Dm755 engine/bin/img2mesh "$engine/bin/img2mesh"
+  /usr/bin/install -Dm644 engine/img2mesh.py "$engine/img2mesh.py"
+  /usr/bin/install -Dm644 engine/requirements.lock "$engine/requirements.lock"
+  ln -s ../share/omamesh/engine/install.sh "$pkgdir/usr/bin/omamesh-setup"
+  ln -s ../share/omamesh/engine/bin/img2mesh "$pkgdir/usr/bin/img2mesh"
+
+  /usr/bin/install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  /usr/bin/install -Dm644 THIRD-PARTY.md "$pkgdir/usr/share/licenses/$pkgname/THIRD-PARTY.md"
+  /usr/bin/install -Dm644 "$startdir/omamesh.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/omamesh.svg"
+  /usr/bin/install -Dm644 "$startdir/omamesh.desktop" "$pkgdir/usr/share/applications/omamesh.desktop"
+}

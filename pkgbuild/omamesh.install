@@ -1,0 +1,19 @@
+caches() {
+  gtk-update-icon-cache -q -t -f usr/share/icons/hicolor >/dev/null 2>&1 || true
+  update-desktop-database -q >/dev/null 2>&1 || true
+}
+
+post_install() {
+  caches
+  echo "==> Omamesh needs its 3D engine: run 'omamesh-setup' in a terminal (as yourself, not sudo)."
+}
+
+post_upgrade() {
+  caches
+  echo "==> Run 'omamesh-setup' again to bring the 3D engine up to date."
+}
+
+post_remove() {
+  caches
+  echo "==> The 3D engine is still in ~/.local/share/omamesh/engine; delete that folder to free its space."
+}

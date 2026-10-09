@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="Main.qml">Main.qml</file>
+        <file alias="ModelView.qml">ModelView.qml</file>
+        <file alias="JobRow.qml">JobRow.qml</file>
+        <file alias="studio.hdr">studio.hdr</file>
+        <file alias="export.py">export.py</file>
+        <file alias="shadowcatcher.frag">shadowcatcher.frag</file>
+        <file alias="ViewToolbar.qml">ViewToolbar.qml</file>
+        <file alias="DetailsPanel.qml">DetailsPanel.qml</file>
+    </qresource>
+</RCC>

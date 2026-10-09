@@ -1,0 +1,32 @@
+/build/
+/build-tests/
+/pkg/
+/pkgbuild/pkg/
+/pkgbuild/src/
+*.pkg.tar.*
+*.src.tar.*
+*.o
+*.moc
+moc_*.cpp
+qrc_*.cpp
+.qmake.stash
+Makefile
+__pycache__/
+
+# An engine set up inside a checkout keeps its data beside the code
+/engine/env/
+/engine/hf/
+/engine/ext/
+/engine/TRELLIS.2/
+/engine/models/
+/engine/tools/
+/engine/test-output/
+/engine/.tmp/
+/engine/.install-state
+/engine/install.log
+
+# Development material stays local
+NOTES.local.md
+/tests/
+/tools/
+/bin/test

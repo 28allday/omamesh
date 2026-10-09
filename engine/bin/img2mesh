@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Launcher: runs img2mesh.py with the engine's own Python (env/ carries CUDA,
+# torch and the compiled extensions; no activation needed).
+#
+# The code and the data can live apart. A writable checkout keeps its data
+# beside the code; an installed copy (read-only, e.g. /usr/share) keeps it in
+# ~/.local/share/omamesh/engine. IMG2MESH_HOME overrides either.
+set -eo pipefail
+CODE="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+if [ -z "${IMG2MESH_HOME:-}" ]; then
+    if [ -w "$CODE" ]; then
+        IMG2MESH_HOME=$CODE
+    else
+        IMG2MESH_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/omamesh/engine"
+    fi
+fi
+export IMG2MESH_HOME
+if [ ! -x "$IMG2MESH_HOME/env/bin/python" ]; then
+    echo "The 3D engine isn't set up yet. Run omamesh-setup in a terminal." >&2
+    exit 3
+fi
+export HF_HOME="${IMG2MESH_HF_HOME:-$IMG2MESH_HOME/hf}"
+export HF_TOKEN_PATH="${HF_TOKEN_PATH:-$HOME/.cache/huggingface/token}"
+exec "$IMG2MESH_HOME/env/bin/python" "$CODE/img2mesh.py" "$@"
