@@ -44,6 +44,11 @@ Type your password when asked, and press Enter to confirm.
 download it first and install the local file. `SHA256SUMS` on the release page
 lets you check the download.)
 
+The package is built against the Qt in the Arch repositories on the day of the
+release, and runs on that Qt or newer. If pacman answers that `qt6-base>=6.x`
+is required, your system is older than that: run `sudo pacman -Syu`, reboot,
+and install the package again.
+
 **2. The engine.** In the same terminal, as yourself (no `sudo`):
 
 ```sh

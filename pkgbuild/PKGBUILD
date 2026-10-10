@@ -2,7 +2,7 @@
 
 pkgname=omamesh
 pkgver=0.2.3
-pkgrel=1
+pkgrel=2
 pkgdesc='Turn photos into textured 3D models on your own NVIDIA or AMD GPU'
 arch=('x86_64')
 url='https://github.com/28allday/omamesh'
@@ -11,10 +11,12 @@ install='omamesh.install'
 options=('!debug')
 # assimp: qt6-quick3d lists it as optional, but its importer plugin (which
 # loads the .glb files) can't load without it.
-depends=('hicolor-icon-theme' 'qt6-base' 'qt6-declarative' 'qt6-quick3d' 'assimp' 'qt6-imageformats'
+# The Qt libraries are added in package(), pinned to the Qt the binary was
+# linked against (see there), so they are build dependencies here.
+depends=('hicolor-icon-theme' 'assimp' 'qt6-imageformats'
          'xdg-desktop-portal' 'bash' 'bzip2' 'curl' 'git' 'pciutils' 'tar')
 optdepends=('blender: open models in Blender, and export them')
-makedepends=('gcc' 'make')
+makedepends=('qt6-base' 'qt6-declarative' 'qt6-quick3d' 'gcc' 'make')
 source=()
 sha256sums=()
 
@@ -26,6 +28,15 @@ build() {
 
 package() {
   cd "$startdir/.."
+
+  # A Qt binary runs on the Qt it was linked against and anything newer, but
+  # not older: it asks the loader for versioned symbols (Qt_6.11, say), and an
+  # older libQt6Core refuses to load it. Record that floor so pacman says
+  # "qt6-base>=6.11 is required" instead of installing an app that won't start.
+  local qtver
+  qtver="$(qmake6 -query QT_VERSION | cut -d. -f1,2)"
+  depends+=("qt6-base>=$qtver" "qt6-declarative>=$qtver" "qt6-quick3d>=$qtver")
+
   /usr/bin/install -Dm755 build/omamesh "$pkgdir/usr/bin/omamesh"
 
   # The engine's code; its data goes to each user's ~/.local/share/omamesh/engine.

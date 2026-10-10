@@ -1,0 +1,50 @@
+# Builds the release package in a clean Arch Linux container, so it is linked
+# against the Qt in the Arch repositories on release day rather than whatever
+# the maintainer's machine happens to have. A binary built against a newer Qt
+# than the repos ship will not start for anyone else.
+name: Release package
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install build dependencies
+        run: |
+          pacman -Syu --noconfirm --needed git qt6-base qt6-declarative qt6-quick3d
+
+      - uses: actions/checkout@v4
+
+      - name: Build the package
+        run: |
+          # makepkg refuses to run as root.
+          useradd -m builder
+          chown -R builder .
+          cd pkgbuild
+          su builder -c 'makepkg -f --noconfirm'
+          sha256sum omamesh-*.pkg.tar.zst > SHA256SUMS
+          pacman -Qip omamesh-*.pkg.tar.zst | grep -E '^(Version|Depends On)'
+
+      - name: Check the binary's Qt requirement
+        run: |
+          cd pkgbuild
+          need="$(objdump -p ../build/omamesh | grep -o 'Qt_6\.[0-9]*' | sort -uV | tail -n 1)"
+          have="$(qmake6 -query QT_VERSION | cut -d. -f1,2)"
+          echo "binary needs $need, repos have Qt $have"
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            pkgbuild/omamesh-*.pkg.tar.zst
+            pkgbuild/SHA256SUMS
