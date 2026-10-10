@@ -1,7 +1,7 @@
 # Maintainer: 28allday
 
 pkgname=omamesh
-pkgver=0.2.2
+pkgver=0.2.3
 pkgrel=1
 pkgdesc='Turn photos into textured 3D models on your own NVIDIA or AMD GPU'
 arch=('x86_64')
@@ -9,7 +9,9 @@ url='https://github.com/28allday/omamesh'
 license=('MIT')
 install='omamesh.install'
 options=('!debug')
-depends=('hicolor-icon-theme' 'qt6-base' 'qt6-declarative' 'qt6-quick3d' 'qt6-imageformats'
+# assimp: qt6-quick3d lists it as optional, but its importer plugin (which
+# loads the .glb files) can't load without it.
+depends=('hicolor-icon-theme' 'qt6-base' 'qt6-declarative' 'qt6-quick3d' 'assimp' 'qt6-imageformats'
          'xdg-desktop-portal' 'bash' 'bzip2' 'curl' 'git' 'pciutils' 'tar')
 optdepends=('blender: open models in Blender, and export them')
 makedepends=('gcc' 'make')
