@@ -52,8 +52,8 @@ omamesh-setup
 
 It checks your computer, then sets up everything the model needs in
 `~/.local/share/omamesh/engine`: its own Python, the GPU toolkit (CUDA for
-NVIDIA, ROCm for AMD) and a compiler, the Python packages, TRELLIS.2's GPU parts (compiled for your card)
-and the model itself. It takes 30–60 minutes, mostly downloading (~25 GB) and
+NVIDIA, ROCm for AMD) and a compiler, the Python packages, TRELLIS.2's GPU
+parts (compiled for your card) and the model itself. It takes 30–60 minutes, mostly downloading (~25 GB) and
 compiling, and ends by making a test model.
 
 One step needs you. TRELLIS.2 reads photos with Meta's **DINOv3** model, which
@@ -114,14 +114,14 @@ like.
 - **Quality**: Draft is quick, Standard is the default, High is the finest and
   needs the most video memory. It applies to photos added after the change.
 
-  | Quality | Time per photo* |
-  |---|---|
-  | Draft | ~35 seconds |
-  | Standard | ~3 minutes |
-  | High | ~1.5–4 minutes |
+  | Quality | RTX 5060 Ti 16 GB | Radeon RX 9060 XT 16 GB |
+  |---|---|---|
+  | Draft | ~35 seconds | ~1.5 minutes |
+  | Standard | ~3 minutes | ~3 minutes |
+  | High | ~1.5–4 minutes | not available (needs a 20 GB Radeon) |
 
-  \*On a 16 GB RTX 5060 Ti. The engine starts with the first photo and keeps
-  the model loaded, so later photos go straight to work.
+  Times are per photo. The engine starts with the first photo and keeps the
+  model loaded, so later photos go straight to work.
 - **New take** runs the same photo again differently; it is saved as
   `photo-seed<N>.glb`, so earlier takes are kept.
 - **Photos of one object on a plain background work best.** The background is
@@ -195,6 +195,8 @@ img2mesh -q draft *.jpg            # a quick look at several photos
 img2mesh -q high -s 7 photo.png    # best quality, a different take
 ```
 
+(On a Radeon with less than 20 GB, use `-q standard` for the best quality.)
+
 Other options: `--seed` for a different take, `--faces` and `--texture` for
 the size of the output, `--video` for a turntable clip, `--keep-background` for
 images that are already cut out. `img2mesh --help` lists them all.
@@ -213,9 +215,19 @@ On a machine with both makes of card, the NVIDIA one is used.
 - **High quality needs 20 GB or more** of video memory on a Radeon. On a 16 GB
   card, High's last step runs out of memory, so the engine turns High jobs
   down with a note to use Standard.
+- **Memory:** Draft and Standard ran on the test machine with 13 GB of RAM,
+  with about 2 GB to spare during Standard. Close other large programs while a
+  model is being made.
 - **Your user needs access to `/dev/kfd`**, which most distributions give
   everyone. If setup says otherwise, add yourself to the `render` group and log
   in again.
+- **Changing cards:** if you move the engine to a computer with the other make
+  of card, run `omamesh-setup` again. It sets the toolchain up afresh for the
+  new card and keeps the downloaded models.
+- **Textures, mesh tools and sparse convolutions** come from
+  Cardboard-box-a's ports, pinned to tested versions like the NVIDIA ones.
+  The o-voxel port has no licence file of its own; see
+  [THIRD-PARTY.md](THIRD-PARTY.md).
 
 ## Other graphics cards
 
