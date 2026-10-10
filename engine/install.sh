@@ -64,13 +64,13 @@ CUDA_REPOS=(
     "ext/CuMesh https://github.com/JeffreyXiang/CuMesh.git 12289e1"
     "ext/FlexGEMM https://github.com/JeffreyXiang/FlexGEMM.git 6dd94a8"
 )
-# HIP ports of the same extensions (and of TRELLIS.2's o-voxel), by Cardboard-box-a.
+# HIP ports of the same extensions, by Cardboard-box-a. TRELLIS.2's own o-voxel
+# builds for HIP as it is.
 ROCM_REPOS=(
     "ext/nvdiffrast-hip https://github.com/Cardboard-box-a/nvdiffrast-hip.git d298923"
     "ext/nvdiffrec-rocm https://github.com/Cardboard-box-a/nvdiffrec.git a762ded"
     "ext/CuMesh-rocm https://github.com/Cardboard-box-a/CuMesh.git 2ef5f9d"
     "ext/FlexGEMM-rocm https://github.com/Cardboard-box-a/FlexGEMM-rocm.git 2a92675"
-    "ext/o-voxel-rocm https://github.com/Cardboard-box-a/o-voxel.git c4c8505"
 )
 
 # The image encoder TRELLIS.2 uses is gated on Hugging Face (Meta's licence).

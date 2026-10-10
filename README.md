@@ -35,7 +35,7 @@ Installing takes two steps: the app, then the 3D engine it runs.
 open a terminal with **Super + Enter** and install it:
 
 ```sh
-sudo pacman -U ~/Downloads/omamesh-0.2.0-1-x86_64.pkg.tar.zst
+sudo pacman -U ~/Downloads/omamesh-0.2.1-1-x86_64.pkg.tar.zst
 ```
 
 Type your password when asked, and press Enter to confirm.
@@ -225,9 +225,8 @@ On a machine with both makes of card, the NVIDIA one is used.
   of card, run `omamesh-setup` again. It sets the toolchain up afresh for the
   new card and keeps the downloaded models.
 - **Textures, mesh tools and sparse convolutions** come from
-  Cardboard-box-a's ports, pinned to tested versions like the NVIDIA ones.
-  The o-voxel port has no licence file of its own; see
-  [THIRD-PARTY.md](THIRD-PARTY.md).
+  Cardboard-box-a's ports, pinned to tested versions like the NVIDIA ones;
+  TRELLIS.2's own O-Voxel builds for AMD as it is.
 
 ## Other graphics cards
 

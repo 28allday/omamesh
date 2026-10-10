@@ -46,7 +46,7 @@ which you read and accept on Hugging Face during setup.
 ### On AMD graphics cards
 
 Setup swaps the GPU parts above for community HIP ports, and xformers for
-flash-attention:
+flash-attention. TRELLIS.2's own O-Voxel and Eigen are used as they are:
 
 | Component | By | Licence | Used for |
 |---|---|---|---|
@@ -54,7 +54,6 @@ flash-attention:
 | [nvdiffrec renderutils](https://github.com/Cardboard-box-a/nvdiffrec) | NVIDIA; HIP port by Cardboard-box-a | NVIDIA Source Code Licence for nvdiffrec — **non-commercial use only** | Materials |
 | [CuMesh](https://github.com/Cardboard-box-a/CuMesh) (with cubvh and xatlas, as above) | Jianfeng Xiang; HIP port by Cardboard-box-a | MIT; cubvh's NVIDIA code **non-commercial only** | Building and simplifying meshes |
 | [FlexGEMM-rocm](https://github.com/Cardboard-box-a/FlexGEMM-rocm) | Jianfeng Xiang; HIP port by Cardboard-box-a | MIT | Sparse convolutions |
-| [o-voxel](https://github.com/Cardboard-box-a/o-voxel) | Microsoft; HIP port by Cardboard-box-a | The original is MIT (part of TRELLIS.2); the port has no licence file of its own | O-Voxel |
 | [flash-attention](https://github.com/Dao-AILab/flash-attention) 2.8.3 (Triton backend) | Tri Dao et al. | BSD-3-Clause | Attention |
 | PyTorch 2.11 for ROCm and the ROCm 7.13 SDK, from [AMD's package index](https://repo.amd.com/rocm/whl/) | Meta / AMD | BSD-3-Clause (PyTorch); ROCm components are open source, mostly MIT with some Apache-2.0 and NCSA ([list](https://rocm.docs.amd.com/en/latest/about/license.html)); each one's licence file comes inside the wheels | GPU runtime and the HIP compiler |
 
