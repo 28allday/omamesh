@@ -250,12 +250,13 @@ short:
   FlexGEMM are MIT.
 - Meta's DINOv3 comes under the DINOv3 Licence, which you accept on Hugging
   Face during setup.
-- **NVIDIA's nvdiffrast and nvdiffrec are not free for commercial use**: their
+- **NVIDIA's nvdiffrast and nvdiffrec, and the NVIDIA code in CuMesh's cubvh,
+  are not free for commercial use**: their
   licences allow use *"for research or evaluation purposes only and not for any
   direct or indirect monetary gain"*. TRELLIS.2 uses them to bake textures, so
   as set up here Omamesh is for **non-commercial use**.
-- On AMD, the ports of nvdiffrast and nvdiffrec keep NVIDIA's licences, so the
-  same applies there.
+- On AMD, the ports of these keep NVIDIA's licences, so the same applies
+  there.
 - The CUDA toolkit and NVIDIA's runtime libraries come under NVIDIA's own
-  licences (on AMD, the ROCm libraries come under AMD's licences,
-  listed in THIRD-PARTY.md); the app uses Qt 6 (LGPL-3.0, and GPL-3.0 for Qt Quick 3D).
+  licences (on AMD, the ROCm libraries are open source: MIT,
+  Apache-2.0 and NCSA); the app uses Qt 6 (LGPL-3.0, and GPL-3.0 for Qt Quick 3D).

@@ -11,13 +11,16 @@ from its original source, onto your computer, the first time you run it.
 ## Read this before commercial use
 
 TRELLIS.2 bakes each model's textures with NVIDIA's **nvdiffrast**, and uses
-part of NVIDIA's **nvdiffrec** for its materials. Both come under NVIDIA
-Source Code Licences that allow use *"non-commercially"*, defined as *"for
-research or evaluation purposes only and not for any direct or indirect
-monetary gain"*. Everything else in the engine allows commercial use.
+part of NVIDIA's **nvdiffrec** for its materials. CuMesh, which builds the
+mesh, includes **cubvh**, whose BVH code comes from NVIDIA's instant-ngp. All
+three come under NVIDIA Source Code Licences that allow use
+*"non-commercially"*, defined as *"for research or evaluation purposes only"*
+(nvdiffrast adds *"and not for any direct or indirect monetary gain"*). The
+same applies to their AMD ports. Everything else in the engine allows
+commercial use.
 
 So, as set up, Omamesh is for **non-commercial use**. If you want to use it,
-or models made with it, to earn money, read those two licences first and
+or models made with it, to earn money, read those three licences first and
 decide for yourself; this page is not legal advice.
 
 The image encoder, Meta's **DINOv3**, comes under Meta's DINOv3 Licence,
@@ -35,6 +38,8 @@ which you read and accept on Hugging Face during setup.
 | [nvdiffrast](https://github.com/NVlabs/nvdiffrast) | NVIDIA | NVIDIA Source Code Licence (1-Way Commercial) — **non-commercial use only** | Baking textures |
 | [nvdiffrec](https://github.com/NVlabs/nvdiffrec) (renderutils, via [this fork](https://github.com/JeffreyXiang/nvdiffrec)) | NVIDIA | NVIDIA Source Code Licence for nvdiffrec — **non-commercial use only** | Materials |
 | [CuMesh](https://github.com/JeffreyXiang/CuMesh) | Jianfeng Xiang | MIT | Building and simplifying meshes |
+| [cubvh](https://github.com/JeffreyXiang/cubvh) (inside CuMesh) | Jiaxiang Tang (kiui); BVH code from NVIDIA's instant-ngp | MIT, plus the NVIDIA Source Code Licence for instant-ngp for NVIDIA's code — **non-commercial use only** | Ray and distance queries on meshes |
+| [xatlas](https://github.com/jpcy/xatlas) (inside CuMesh) | Jonathan Young | MIT | Unwrapping meshes for textures |
 | [FlexGEMM](https://github.com/JeffreyXiang/FlexGEMM) | Jianfeng Xiang | MIT | Sparse convolutions |
 | [Eigen](https://gitlab.com/libeigen/eigen) | Eigen authors | MPL-2.0 | Maths library inside O-Voxel |
 
@@ -47,11 +52,11 @@ flash-attention:
 |---|---|---|---|
 | [nvdiffrast-hip](https://github.com/Cardboard-box-a/nvdiffrast-hip) | NVIDIA; HIP port by Cardboard-box-a | NVIDIA Source Code Licence (1-Way Commercial) — **non-commercial use only** | Baking textures |
 | [nvdiffrec renderutils](https://github.com/Cardboard-box-a/nvdiffrec) | NVIDIA; HIP port by Cardboard-box-a | NVIDIA Source Code Licence for nvdiffrec — **non-commercial use only** | Materials |
-| [CuMesh](https://github.com/Cardboard-box-a/CuMesh) | Jianfeng Xiang; HIP port by Cardboard-box-a | MIT | Building and simplifying meshes |
+| [CuMesh](https://github.com/Cardboard-box-a/CuMesh) (with cubvh and xatlas, as above) | Jianfeng Xiang; HIP port by Cardboard-box-a | MIT; cubvh's NVIDIA code **non-commercial only** | Building and simplifying meshes |
 | [FlexGEMM-rocm](https://github.com/Cardboard-box-a/FlexGEMM-rocm) | Jianfeng Xiang; HIP port by Cardboard-box-a | MIT | Sparse convolutions |
-| [o-voxel](https://github.com/Cardboard-box-a/o-voxel) | Microsoft; HIP port by Cardboard-box-a | MIT (from TRELLIS.2) | O-Voxel |
+| [o-voxel](https://github.com/Cardboard-box-a/o-voxel) | Microsoft; HIP port by Cardboard-box-a | The original is MIT (part of TRELLIS.2); the port has no licence file of its own | O-Voxel |
 | [flash-attention](https://github.com/Dao-AILab/flash-attention) 2.8.3 (Triton backend) | Tri Dao et al. | BSD-3-Clause | Attention |
-| PyTorch 2.11 for ROCm and the ROCm 7.13 SDK, from [AMD's package index](https://repo.amd.com/rocm/whl/) | Meta / AMD | BSD-3-Clause (PyTorch); ROCm components under [AMD's ROCm licences](https://rocm.docs.amd.com/en/latest/about/license.html) | GPU runtime and the HIP compiler |
+| PyTorch 2.11 for ROCm and the ROCm 7.13 SDK, from [AMD's package index](https://repo.amd.com/rocm/whl/) | Meta / AMD | BSD-3-Clause (PyTorch); ROCm components are open source, mostly MIT with some Apache-2.0 and NCSA ([list](https://rocm.docs.amd.com/en/latest/about/license.html)); each one's licence file comes inside the wheels | GPU runtime and the HIP compiler |
 
 ## The engine's toolchain
 
