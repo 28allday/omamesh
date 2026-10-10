@@ -74,6 +74,10 @@ MODELS = {
 # VRAM left free for each quality's working memory; models are kept on the GPU
 # only while they fit beside it, the rest wait in RAM between stages.
 HEADROOM_GB = {"draft": 2.0, "standard": 3.5, "high": 4.5}
+# Under ROCm, MIOpen's convolutions give the background remover (BiRefNet)
+# 3.9 GB of working memory at its 1024x1024 input, so every quality leaves
+# at least this much free there.
+ROCM_MIN_HEADROOM_GB = 4.5
 # Decoding and mesh building need more than that headroom, more so if something
 # else is using the GPU. The samplers are finished by then, so they are dropped
 # (the next job reads them back from disk in a few seconds); at 1024+, or when
@@ -97,6 +101,12 @@ class Cancelled(Exception):
 
 class QualityUnavailable(Exception):
     pass
+
+
+def headroom_gb(quality):
+    if ACCELERATOR == "rocm":
+        return max(HEADROOM_GB[quality], ROCM_MIN_HEADROOM_GB)
+    return HEADROOM_GB[quality]
 
 
 def unavailable(quality):
@@ -283,7 +293,7 @@ def use_quality(pipeline, quality):
     helpers = [pipeline.image_cond_model, pipeline.rembg_model]
     kept = [m for m in [*pipeline.models.values(), *helpers] if _pinned(m)]
     budget = (torch.cuda.mem_get_info()[0] + sum(map(_size_bytes, kept))
-              - HEADROOM_GB[quality] * 2**30)
+              - headroom_gb(quality) * 2**30)
     paths = pipeline._pretrained_args["models"]
     for name in [*wanted, None, None]:
         if name is None:
