@@ -35,7 +35,7 @@ Installing takes two steps: the app, then the 3D engine it runs.
 open a terminal with **Super + Enter** and install it:
 
 ```sh
-sudo pacman -U ~/Downloads/omamesh-0.1.0-1-x86_64.pkg.tar.zst
+sudo pacman -U ~/Downloads/omamesh-0.2.0-1-x86_64.pkg.tar.zst
 ```
 
 Type your password when asked, and press Enter to confirm.
@@ -51,8 +51,8 @@ omamesh-setup
 ```
 
 It checks your computer, then sets up everything the model needs in
-`~/.local/share/omamesh/engine`: its own Python, the CUDA toolkit and a
-compiler, the Python packages, TRELLIS.2's GPU parts (compiled for your card)
+`~/.local/share/omamesh/engine`: its own Python, the GPU toolkit (CUDA for
+NVIDIA, ROCm for AMD) and a compiler, the Python packages, TRELLIS.2's GPU parts (compiled for your card)
 and the model itself. It takes 30–60 minutes, mostly downloading (~25 GB) and
 compiling, and ends by making a test model.
 

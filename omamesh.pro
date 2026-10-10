@@ -2,7 +2,7 @@ QT += core gui qml quick quickcontrols2 dbus
 
 CONFIG += c++17 release
 TARGET = omamesh
-VERSION = 0.1.0
+VERSION = 0.2.0
 DEFINES += OMAMESH_VERSION=\\\"$$VERSION\\\"
 TEMPLATE = app
 
