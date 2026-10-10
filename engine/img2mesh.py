@@ -26,14 +26,27 @@ import time
 import traceback
 from pathlib import Path
 
-os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
-os.environ.setdefault("ATTN_BACKEND", "xformers")
-os.environ.setdefault("OPENCV_IO_ENABLE_OPENEXR", "1")
-
 # Code and data can live apart (see bin/img2mesh): the TRELLIS.2 source, the
 # models folder and the environment sit in IMG2MESH_HOME.
 ROOT = Path(os.environ.get("IMG2MESH_HOME") or Path(__file__).resolve().parent)
 TRELLIS = ROOT / "TRELLIS.2"
+# Which GPU the engine was set up for: "cuda" (NVIDIA) or "rocm" (AMD). Written
+# by install.sh; engines set up before AMD support have no file and are CUDA.
+_accel = ROOT / "accelerator"
+ACCELERATOR = _accel.read_text().strip() if _accel.exists() else "cuda"
+
+os.environ.setdefault("OPENCV_IO_ENABLE_OPENEXR", "1")
+if ACCELERATOR == "rocm":
+    # No xformers on ROCm; flash-attn runs through its Triton backend instead.
+    os.environ.setdefault("ATTN_BACKEND", "flash_attn")
+    os.environ.setdefault("FLASH_ATTENTION_TRITON_AMD_ENABLE", "TRUE")
+    os.environ.setdefault("TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL", "1")
+    # expandable_segments stays off: with it, emptying torch's cache doesn't
+    # hand memory back to HIP, so CuMesh (which allocates outside torch) runs
+    # out while building the mesh.
+else:
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+    os.environ.setdefault("ATTN_BACKEND", "xformers")
 MODEL_REPO = "microsoft/TRELLIS.2-4B"
 # RMBG-2.0 (the upstream default) is gated and non-commercial; BiRefNet is MIT.
 REMBG_MODEL = "ZhengPeng7/BiRefNet"
@@ -67,6 +80,10 @@ HEADROOM_GB = {"draft": 2.0, "standard": 3.5, "high": 4.5}
 # the GPU is short, the rest wait in RAM while CuMesh works.
 PARK_BEFORE_MESH = {"standard", "high"}
 MESH_FREE_GB = 5.0
+# High's 1536 shape decoder doesn't fit beside ROCm's allocator on a 16 GB
+# Radeon (its biggest layer wants one 3.2 GB block that fragmentation never
+# leaves free); 24 GB cards have room to spare.
+ROCM_HIGH_MIN_VRAM_GB = 20
 STAGES = {
     "Sampling sparse structure": "Shape layout",
     "Sampling shape SLat": "Shape detail",
@@ -76,6 +93,23 @@ STAGES = {
 
 class Cancelled(Exception):
     pass
+
+
+class QualityUnavailable(Exception):
+    pass
+
+
+def unavailable(quality):
+    """Why this GPU can't make `quality`, or None if it can."""
+    import torch
+
+    if ACCELERATOR != "rocm" or quality != "high":
+        return None
+    vram_gb = torch.cuda.mem_get_info()[1] / 2**30
+    if vram_gb >= ROCM_HIGH_MIN_VRAM_GB:
+        return None
+    return (f"High quality needs a Radeon with {ROCM_HIGH_MIN_VRAM_GB} GB or more of video "
+            f"memory; this one has {vram_gb:.0f} GB. Standard works on it.")
 
 
 def local_model_dir() -> Path:
@@ -126,7 +160,24 @@ def load_pipeline(on_step, quality):
         return decode_latent(*args, **kwargs)
 
     pipeline.decode_latent = reporting_decode
-    use_quality(pipeline, quality)
+
+    # Hole filling runs inside decode_latent, in CuMesh, which allocates outside
+    # PyTorch: as for mesh building, hand it what the decoders and torch's cache
+    # hold when the GPU is short.
+    from trellis2.representations.mesh.base import Mesh
+    fill_holes = Mesh.fill_holes
+
+    def roomy_fill_holes(self, *args, **kwargs):
+        import torch
+        if torch.cuda.mem_get_info()[0] < MESH_FREE_GB * 2**30:
+            _park(pipeline)
+        torch.cuda.empty_cache()
+        return fill_holes(self, *args, **kwargs)
+
+    Mesh.fill_holes = roomy_fill_holes
+    # A saved quality this GPU can't make still starts the engine; jobs at that
+    # quality are refused one by one (see generate).
+    use_quality(pipeline, "standard" if unavailable(quality) else quality)
     return pipeline
 
 
@@ -324,6 +375,9 @@ def generate(pipeline, image_path: Path, out_dir: Path, quality="standard", seed
     from PIL import Image
     import o_voxel
 
+    reason = unavailable(quality)
+    if reason:
+        raise QualityUnavailable(reason)
     if pipeline.quality != quality:
         on_stage("Loading models")
         use_quality(pipeline, quality)
@@ -462,6 +516,8 @@ def serve(quality):
             emit("done", id=job_id, glb=str(glb), seconds=round(seconds, 1), vram=round(vram, 1))
         except Cancelled:
             emit("cancelled", id=job_id)
+        except QualityUnavailable as e:
+            emit("error", id=job_id, message=str(e))
         except Exception as e:
             traceback.print_exc()
             emit("error", id=job_id, message=f"{type(e).__name__}: {e}")
@@ -507,6 +563,9 @@ def main():
     missing = [str(i) for i in args.images if not i.is_file()]
     if missing:
         sys.exit(f"img2mesh: not found: {', '.join(missing)}")
+    reason = unavailable(args.quality)
+    if reason:
+        sys.exit(f"img2mesh: {reason}")
 
     started = time.time()
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launcher: runs img2mesh.py with the engine's own Python (env/ carries CUDA,
+# Launcher: runs img2mesh.py with the engine's own Python (env/ carries CUDA or ROCm,
 # torch and the compiled extensions; no activation needed).
 #
 # The code and the data can live apart. A writable checkout keeps its data

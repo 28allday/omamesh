@@ -6,7 +6,8 @@
 #
 # Everything lands in one folder: ~/.local/share/omamesh/engine when installed
 # from the package, or beside this script in a writable checkout. It gets its
-# own Python, CUDA toolkit and compiler (no sudo, nothing in /usr). Re-running
+# own Python, GPU toolkit (CUDA for NVIDIA, ROCm for AMD) and compiler (no sudo,
+# nothing in /usr). Re-running
 # is safe: finished steps are skipped, so an interrupted setup carries on, and
 # only what changed is redone after an update.
 #
@@ -44,13 +45,32 @@ MIN_VRAM_GB=16          # Draft and Standard verified on a 16 GB card
 MIN_RAM_GB=24
 MIN_DISK_GB=45          # toolchain ~17 GB, weights ~17 GB, build room
 
+# AMD: PyTorch and the HIP compiler both come from AMD's per-family wheel index,
+# so the compiler matches the HIP that torch was built with. Verified on an
+# RX 9060 XT (gfx1200); the index also serves RDNA 3 (gfx110x).
+ROCM_VERSION=7.13.0
+ROCM_TORCH="torch==2.11.0+rocm$ROCM_VERSION torchvision==0.26.0+rocm$ROCM_VERSION"
+ROCM_INDEX_BASE=https://repo.amd.com/rocm/whl
+FLASH_ATTN_VERSION=2.8.3   # its Triton backend stands in for xformers on AMD
+MIN_VRAM_GB_AMD=16
+
 # Sources, pinned to the revisions this setup was verified with.
 declare -A REPOS=(
     [TRELLIS.2]="https://github.com/microsoft/TRELLIS.2.git 75fbf01"
-    [ext/nvdiffrast]="https://github.com/NVlabs/nvdiffrast.git 253ac4f"
-    [ext/nvdiffrec]="https://github.com/JeffreyXiang/nvdiffrec.git b296927"
-    [ext/CuMesh]="https://github.com/JeffreyXiang/CuMesh.git 12289e1"
-    [ext/FlexGEMM]="https://github.com/JeffreyXiang/FlexGEMM.git 6dd94a8"
+)
+CUDA_REPOS=(
+    "ext/nvdiffrast https://github.com/NVlabs/nvdiffrast.git 253ac4f"
+    "ext/nvdiffrec https://github.com/JeffreyXiang/nvdiffrec.git b296927"
+    "ext/CuMesh https://github.com/JeffreyXiang/CuMesh.git 12289e1"
+    "ext/FlexGEMM https://github.com/JeffreyXiang/FlexGEMM.git 6dd94a8"
+)
+# HIP ports of the same extensions (and of TRELLIS.2's o-voxel), by Cardboard-box-a.
+ROCM_REPOS=(
+    "ext/nvdiffrast-hip https://github.com/Cardboard-box-a/nvdiffrast-hip.git d298923"
+    "ext/nvdiffrec-rocm https://github.com/Cardboard-box-a/nvdiffrec.git a762ded"
+    "ext/CuMesh-rocm https://github.com/Cardboard-box-a/CuMesh.git 2ef5f9d"
+    "ext/FlexGEMM-rocm https://github.com/Cardboard-box-a/FlexGEMM-rocm.git 2a92675"
+    "ext/o-voxel-rocm https://github.com/Cardboard-box-a/o-voxel.git c4c8505"
 )
 
 # The image encoder TRELLIS.2 uses is gated on Hugging Face (Meta's licence).
@@ -75,6 +95,8 @@ export TMPDIR="$ROOT/.tmp"
 mkdir -p "$TMPDIR"
 PY="$ROOT/env/bin/python"
 STATE="$ROOT/.install-state"
+ACCEL=""      # cuda or rocm, set by check_machine
+GFX=""        # AMD compute target, e.g. gfx1200
 LOG="$ROOT/install.log"
 
 bold=$'\e[1m'; dim=$'\e[2m'; red=$'\e[31m'; green=$'\e[32m'; yellow=$'\e[33m'; off=$'\e[0m'
@@ -108,31 +130,8 @@ quietly() {
 }
 
 # ---------------------------------------------------------------- checks
-check_machine() {
-    step "Checking this machine"
-    [ "$(uname -s)" = Linux ] && [ "$(uname -m)" = x86_64 ] \
-        || die "img2mesh needs 64-bit Linux on x86_64."
-    for tool in git curl tar bzip2; do
-        command -v "$tool" >/dev/null || die "Please install '$tool' first."
-    done
-
-    local gpus
-    gpus=$(lspci 2>/dev/null | grep -Ei 'vga|3d controller|display' || true)
-    if ! command -v nvidia-smi >/dev/null || ! nvidia-smi -L >/dev/null 2>&1; then
-        if grep -qi 'nvidia' <<<"$gpus"; then
-            die "There's an NVIDIA GPU but its driver isn't working (nvidia-smi failed).
-    Install the NVIDIA driver (on Omarchy/Arch: the nvidia-open package), reboot, and run this again."
-        elif grep -Eqi 'amd|ati|radeon' <<<"$gpus" && ! grep -qi 'intel' <<<"$gpus"; then
-            die "This machine has an AMD GPU. img2mesh currently needs an NVIDIA GPU:
-    TRELLIS.2's GPU parts are written for NVIDIA's CUDA. Community ports to AMD's ROCm
-    exist (Radeon RX 7000 series, Linux) but aren't supported by this installer yet."
-        elif grep -qi 'intel' <<<"$gpus"; then
-            die "This machine has Intel graphics. img2mesh currently needs an NVIDIA GPU:
-    there is no Intel (XPU) version of TRELLIS.2's GPU parts yet."
-        fi
-        die "No NVIDIA GPU found. img2mesh needs an NVIDIA GPU with ${MIN_VRAM_GB} GB of memory."
-    fi
-
+check_nvidia() {
+    ACCEL=cuda
     local driver vram name
     IFS=, read -r name driver vram < <(nvidia-smi --query-gpu=name,driver_version,memory.total \
         --format=csv,noheader,nounits | head -1)
@@ -144,6 +143,84 @@ check_machine() {
         warn "This GPU has $(((vram + 512) / 1024)) GB. img2mesh is tested on ${MIN_VRAM_GB} GB; Draft quality may still work."
         confirm "Carry on anyway?" || exit 1
     fi
+}
+
+# The first AMD compute target the kernel publishes (gfx_target_version 120000
+# is gfx1200), read from the amdgpu driver's KFD topology: no ROCm install needed.
+amd_target() {
+    local props v
+    for props in /sys/class/kfd/kfd/topology/nodes/*/properties; do
+        v=$(awk '$1 == "gfx_target_version" {print $2}' "$props" 2>/dev/null)
+        [ -n "$v" ] && [ "$v" != 0 ] || continue
+        printf 'gfx%d%d%x\n' $((v / 10000)) $((v / 100 % 100)) $((v % 100))
+        return 0
+    done
+    return 1
+}
+
+check_amd() {
+    ACCEL=rocm
+    case $GFX in
+        gfx120[01]) ROCM_INDEX="$ROCM_INDEX_BASE/gfx120X-all/" ;;
+        gfx110[012]) ROCM_INDEX="$ROCM_INDEX_BASE/gfx110X-all/" ;;
+        *) die "This AMD GPU ($GFX) isn't supported. img2mesh runs on Radeon RX 9000 (gfx1200/gfx1201)
+    and RX 7000 (gfx1100-gfx1102) cards." ;;
+    esac
+    local vram=0 card v
+    for card in /sys/class/drm/card*/device; do
+        [ "$(cat "$card/vendor" 2>/dev/null)" = 0x1002 ] || continue
+        v=$(cat "$card/mem_info_vram_total" 2>/dev/null || echo 0)
+        [ "$v" -gt "$vram" ] && vram=$v
+    done
+    vram=$(((vram + 2**29) / 2**30))
+    info "GPU: AMD Radeon ($GFX), ${vram} GB"
+    [ "$GFX" = gfx1200 ] || info "${dim}AMD support was verified on gfx1200 (RX 9060 XT); $GFX uses the same ports.${off}"
+    [ -r /dev/kfd ] && [ -w /dev/kfd ] \
+        || die "Can't open /dev/kfd, which ROCm needs to reach the GPU. Add yourself to the
+    render group (sudo usermod -aG render \$USER), log out and back in, and run this again."
+    if [ "$vram" -lt "$MIN_VRAM_GB_AMD" ]; then
+        warn "This GPU has ${vram} GB. img2mesh is tested on ${MIN_VRAM_GB_AMD} GB; Draft quality may still work."
+        confirm "Carry on anyway?" || exit 1
+    fi
+    info "${dim}High quality needs a Radeon with 20 GB or more; Draft and Standard run on 16 GB.${off}"
+}
+
+check_machine() {
+    step "Checking this machine"
+    [ "$(uname -s)" = Linux ] && [ "$(uname -m)" = x86_64 ] \
+        || die "img2mesh needs 64-bit Linux on x86_64."
+    for tool in git curl tar bzip2; do
+        command -v "$tool" >/dev/null || die "Please install '$tool' first."
+    done
+
+    local gpus
+    gpus=$(lspci 2>/dev/null | grep -Ei 'vga|3d controller|display' || true)
+    if command -v nvidia-smi >/dev/null && nvidia-smi -L >/dev/null 2>&1; then
+        check_nvidia  # NVIDIA keeps priority on a machine with both
+    elif GFX=$(amd_target); then
+        check_amd
+    elif grep -qi 'nvidia' <<<"$gpus"; then
+        die "There's an NVIDIA GPU but its driver isn't working (nvidia-smi failed).
+    Install the NVIDIA driver (on Omarchy/Arch: the nvidia-open package), reboot, and run this again."
+    elif grep -Eqi 'amd|ati|radeon' <<<"$gpus"; then
+        die "This machine has an AMD GPU, but the kernel publishes no compute target for it
+    (nothing in /sys/class/kfd). img2mesh needs a Radeon RX 7000 or 9000 series card
+    with the amdgpu driver."
+    elif grep -qi 'intel' <<<"$gpus"; then
+        die "This machine has Intel graphics. img2mesh needs an NVIDIA or AMD Radeon GPU:
+    there is no Intel (XPU) version of TRELLIS.2's GPU parts yet."
+    else
+        die "No supported GPU found. img2mesh needs an NVIDIA GPU or an AMD Radeon RX 7000/9000
+    with ${MIN_VRAM_GB} GB of memory."
+    fi
+    echo "$ACCEL" > "$ROOT/accelerator.new"
+    if [ -f "$ROOT/accelerator" ] && ! cmp -s "$ROOT/accelerator" "$ROOT/accelerator.new"; then
+        # Moved to another make of GPU: rebuild the toolchain, keep the weights.
+        warn "This engine was set up for $(cat "$ROOT/accelerator"); setting it up again for $ACCEL."
+        grep -xE 'weights|hf-access' "$STATE" > "$STATE.new" 2>/dev/null || true
+        mv "$STATE.new" "$STATE"
+    fi
+    mv "$ROOT/accelerator.new" "$ROOT/accelerator"
 
     local ram_gb disk_gb
     ram_gb=$(awk '/MemTotal/ {print int($2 / 1048576 + 0.5)}' /proc/meminfo)
@@ -176,24 +253,37 @@ install_micromamba() {
 
 make_env() {
     rm -rf "$ROOT/env"
+    # On AMD the HIP toolchain arrives with PyTorch (install_packages).
+    local toolkit=("cuda-toolkit=$CUDA_VERSION")
+    [ "$ACCEL" = rocm ] && toolkit=()
     tools/bin/micromamba create -y -p "$ROOT/env" -c conda-forge \
-        python=3.11 "cuda-toolkit=$CUDA_VERSION" gcc=13 gxx=13 ninja git cmake libjpeg-turbo
+        python=3.11 "${toolkit[@]}" gcc=13 gxx=13 ninja git cmake libjpeg-turbo
 }
 
 create_env() {
     done_before env && return
-    step "Creating the Python 3.11 environment with CUDA $CUDA_VERSION and gcc 13"
+    if [ "$ACCEL" = rocm ]; then
+        step "Creating the Python 3.11 environment with gcc 13"
+    else
+        step "Creating the Python 3.11 environment with CUDA $CUDA_VERSION and gcc 13"
+    fi
     info "${dim}downloads ~3 GB; a few minutes${off}"
     quietly with_retries make_env
     mark_done env
 }
 
 install_packages() {
-    local key; key="packages-$(fingerprint "$(cat "$CODE/requirements.lock")")"
+    local key; key="packages-$(fingerprint "$(cat "$CODE/requirements.lock")" "$ACCEL" \
+        "$ROCM_TORCH" "$FLASH_ATTN_VERSION")"
     done_before "$key" && return
     step "Installing PyTorch and the Python packages"
     info "${dim}downloads ~5 GB${off}"
     quietly with_retries "$PY" -m pip install --upgrade pip setuptools wheel
+    if [ "$ACCEL" = rocm ]; then
+        install_rocm_packages
+        mark_done "$key"
+        return
+    fi
     # Only PyTorch itself comes from PyTorch's index; its CUDA libraries and
     # everything else come from PyPI (PyTorch's index sends those to NVIDIA's
     # server, which keeps cutting the 650 MB cuDNN download partway).
@@ -207,6 +297,34 @@ install_packages() {
     quietly with_retries "$PY" -m pip install --resume-retries 30 -r "$rest"
     rm -f "$rest"
     mark_done "$key"
+}
+
+install_rocm_packages() {
+    # PyTorch for ROCm and the matching HIP SDK (compiler, headers) from AMD's
+    # index for this GPU family; the runtime ships inside the wheels.
+    # shellcheck disable=SC2086  # one pin per word
+    quietly with_retries "$PY" -m pip install --resume-retries 30 \
+        --index-url "$ROCM_INDEX" --extra-index-url https://pypi.org/simple \
+        $ROCM_TORCH "rocm[libraries,devel]==$ROCM_VERSION"
+    # The lock's CUDA-only packages (and PyPI's CUDA Triton) stay out.
+    local rest="$ROOT/.requirements-pypi.txt"
+    grep -vE '^(torch|torchvision|xformers|triton)==|^(cuda|nvidia)-' "$CODE/requirements.lock" > "$rest"
+    quietly with_retries "$PY" -m pip install --resume-retries 30 -r "$rest"
+    rm -f "$rest"
+    local sdk; sdk=$("$ROOT/env/bin/rocm-sdk" path --root)
+    quietly with_retries env FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE ROCM_PATH="$sdk" ROCM_HOME="$sdk" \
+        PATH="$sdk/bin:$ROOT/env/bin:$PATH" \
+        "$PY" -m pip install --no-build-isolation "flash-attn==$FLASH_ATTN_VERSION"
+}
+
+# The GPU extensions differ by vendor; TRELLIS.2 itself is the same.
+add_gpu_sources() {
+    local entry dir url rev list=("${CUDA_REPOS[@]}")
+    [ "$ACCEL" = rocm ] && list=("${ROCM_REPOS[@]}")
+    for entry in "${list[@]}"; do
+        read -r dir url rev <<<"$entry"
+        REPOS[$dir]="$url $rev"
+    done
 }
 
 sources_key() {
@@ -351,6 +469,7 @@ main() {
         info "${bold}non-commercial use only${off} (research or evaluation). Omamesh's README lists every licence."
     fi
     check_machine
+    add_gpu_sources
     install_micromamba
     create_env
     install_packages

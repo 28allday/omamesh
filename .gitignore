@@ -24,6 +24,7 @@ __pycache__/
 /engine/.tmp/
 /engine/.install-state
 /engine/install.log
+/engine/accelerator
 
 # Development material stays local
 NOTES.local.md

@@ -17,13 +17,13 @@ card.
 
 | | |
 |---|---|
-| Graphics card | **NVIDIA** with 16 GB of video memory (made on an RTX 5060 Ti 16 GB) |
-| Driver | NVIDIA 570 or newer |
+| Graphics card | **NVIDIA** with 16 GB of video memory (made on an RTX 5060 Ti 16 GB), or **AMD Radeon RX 7000 / 9000** with 16 GB (see [AMD graphics cards](#amd-graphics-cards)) |
+| Driver | NVIDIA 570 or newer; on AMD, the kernel's own amdgpu driver |
 | Memory | 24 GB or more (32 GB is comfortable) |
 | Disk | about 45 GB free in your home folder |
 | System | Omarchy, or another Arch Linux desktop |
 
-AMD and Intel graphics aren't supported yet — see
+Intel graphics aren't supported yet — see
 [Other graphics cards](#other-graphics-cards).
 
 ## Install
@@ -199,14 +199,30 @@ Other options: `--seed` for a different take, `--faces` and `--texture` for
 the size of the output, `--video` for a turntable clip, `--keep-background` for
 images that are already cut out. `img2mesh --help` lists them all.
 
+## AMD graphics cards
+
+Setup notices a Radeon and installs AMD's version of everything instead:
+PyTorch for ROCm and its compiler from AMD's own package index (nothing to
+install system-wide first, and no sudo), and community ports of TRELLIS.2's
+GPU parts to AMD's HIP, by [Cardboard-box-a](https://github.com/Cardboard-box-a/TRELLIS.2_rocm).
+On a machine with both makes of card, the NVIDIA one is used.
+
+- **Tested on** a Radeon RX 9060 XT 16 GB (gfx1200): Draft takes about a
+  minute and a half, Standard about three. The RX 9070 series (gfx1201) and
+  RX 7000 series (gfx1100–gfx1102) use the same parts but haven't been tried.
+- **High quality needs 20 GB or more** of video memory on a Radeon. On a 16 GB
+  card, High's last step runs out of memory, so the engine turns High jobs
+  down with a note to use Standard.
+- **Your user needs access to `/dev/kfd`**, which most distributions give
+  everyone. If setup says otherwise, add yourself to the `render` group and log
+  in again.
+
 ## Other graphics cards
 
 TRELLIS.2's GPU parts (its rasteriser, mesh tools and sparse convolutions) are
-written for NVIDIA's CUDA, so setup stops with an explanation on other cards.
+written for NVIDIA's CUDA and ported to AMD's HIP, so setup stops with an
+explanation on other cards.
 
-- **AMD (Radeon RX 7000 / 9000):** community ports to AMD's ROCm run TRELLIS.2
-  on some Radeon cards. They're young and tied to specific cards; Omamesh may
-  add AMD support once it can be tested.
 - **Intel (Arc):** nobody has ported TRELLIS.2's GPU parts to Intel graphics
   yet.
 
@@ -238,5 +254,8 @@ short:
   licences allow use *"for research or evaluation purposes only and not for any
   direct or indirect monetary gain"*. TRELLIS.2 uses them to bake textures, so
   as set up here Omamesh is for **non-commercial use**.
+- On AMD, the ports of nvdiffrast and nvdiffrec keep NVIDIA's licences, so the
+  same applies there.
 - The CUDA toolkit and NVIDIA's runtime libraries come under NVIDIA's own
-  licences; the app uses Qt 6 (LGPL-3.0, and GPL-3.0 for Qt Quick 3D).
+  licences (on AMD, the ROCm libraries come under AMD's licences,
+  listed in THIRD-PARTY.md); the app uses Qt 6 (LGPL-3.0, and GPL-3.0 for Qt Quick 3D).

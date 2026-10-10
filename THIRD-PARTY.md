@@ -38,6 +38,21 @@ which you read and accept on Hugging Face during setup.
 | [FlexGEMM](https://github.com/JeffreyXiang/FlexGEMM) | Jianfeng Xiang | MIT | Sparse convolutions |
 | [Eigen](https://gitlab.com/libeigen/eigen) | Eigen authors | MPL-2.0 | Maths library inside O-Voxel |
 
+### On AMD graphics cards
+
+Setup swaps the GPU parts above for community HIP ports, and xformers for
+flash-attention:
+
+| Component | By | Licence | Used for |
+|---|---|---|---|
+| [nvdiffrast-hip](https://github.com/Cardboard-box-a/nvdiffrast-hip) | NVIDIA; HIP port by Cardboard-box-a | NVIDIA Source Code Licence (1-Way Commercial) — **non-commercial use only** | Baking textures |
+| [nvdiffrec renderutils](https://github.com/Cardboard-box-a/nvdiffrec) | NVIDIA; HIP port by Cardboard-box-a | NVIDIA Source Code Licence for nvdiffrec — **non-commercial use only** | Materials |
+| [CuMesh](https://github.com/Cardboard-box-a/CuMesh) | Jianfeng Xiang; HIP port by Cardboard-box-a | MIT | Building and simplifying meshes |
+| [FlexGEMM-rocm](https://github.com/Cardboard-box-a/FlexGEMM-rocm) | Jianfeng Xiang; HIP port by Cardboard-box-a | MIT | Sparse convolutions |
+| [o-voxel](https://github.com/Cardboard-box-a/o-voxel) | Microsoft; HIP port by Cardboard-box-a | MIT (from TRELLIS.2) | O-Voxel |
+| [flash-attention](https://github.com/Dao-AILab/flash-attention) 2.8.3 (Triton backend) | Tri Dao et al. | BSD-3-Clause | Attention |
+| PyTorch 2.11 for ROCm and the ROCm 7.13 SDK, from [AMD's package index](https://repo.amd.com/rocm/whl/) | Meta / AMD | BSD-3-Clause (PyTorch); ROCm components under [AMD's ROCm licences](https://rocm.docs.amd.com/en/latest/about/license.html) | GPU runtime and the HIP compiler |
+
 ## The engine's toolchain
 
 `omamesh-setup` builds a private environment with
