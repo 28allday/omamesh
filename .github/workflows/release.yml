@@ -1,7 +1,8 @@
-# Builds the release package in a clean Arch Linux container, so it is linked
-# against the Qt in the Arch repositories on release day rather than whatever
-# the maintainer's machine happens to have. A binary built against a newer Qt
-# than the repos ship will not start for anyone else.
+# Builds the release package in a clean Arch Linux container pointed at the
+# Omarchy mirror, so it is linked against the Qt that Omarchy users have on
+# release day rather than whatever the maintainer's machine happens to have.
+# A binary built against a newer Qt than the mirror ships will not start for
+# anyone else, and the Omarchy mirror lags the main Arch repositories.
 name: Release package
 
 on:
@@ -18,11 +19,15 @@ jobs:
     container:
       image: archlinux:base-devel
     steps:
+      - name: Use the Omarchy mirror
+        run: |
+          echo 'Server = https://stable-mirror.omarchy.org/$repo/os/$arch' > /etc/pacman.d/mirrorlist
+
       - name: Install dependencies
         # makepkg checks the runtime dependencies too, so install the whole
         # list from the PKGBUILD, not only what the build needs.
         run: |
-          pacman -Syu --noconfirm --needed git \
+          pacman -Syyu --noconfirm --needed git \
             qt6-base qt6-declarative qt6-quick3d \
             hicolor-icon-theme assimp qt6-imageformats xdg-desktop-portal \
             bash bzip2 curl pciutils tar
@@ -44,7 +49,7 @@ jobs:
           cd pkgbuild
           need="$(objdump -p ../build/omamesh | grep -o 'Qt_6\.[0-9]*' | sort -uV | tail -n 1)"
           have="$(qmake6 -query QT_VERSION | cut -d. -f1,2)"
-          echo "binary needs $need, repos have Qt $have"
+          echo "binary needs $need, the Omarchy mirror has Qt $have"
 
       - name: Attach to the release
         if: startsWith(github.ref, 'refs/tags/')
