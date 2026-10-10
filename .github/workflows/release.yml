@@ -18,9 +18,14 @@ jobs:
     container:
       image: archlinux:base-devel
     steps:
-      - name: Install build dependencies
+      - name: Install dependencies
+        # makepkg checks the runtime dependencies too, so install the whole
+        # list from the PKGBUILD, not only what the build needs.
         run: |
-          pacman -Syu --noconfirm --needed git qt6-base qt6-declarative qt6-quick3d
+          pacman -Syu --noconfirm --needed git \
+            qt6-base qt6-declarative qt6-quick3d \
+            hicolor-icon-theme assimp qt6-imageformats xdg-desktop-portal \
+            bash bzip2 curl pciutils tar
 
       - uses: actions/checkout@v4
 
