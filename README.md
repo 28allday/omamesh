@@ -35,7 +35,7 @@ Installing takes two steps: the app, then the 3D engine it runs.
 open a terminal with **Super + Enter** and install it:
 
 ```sh
-sudo pacman -U ~/Downloads/omamesh-0.2.3-2-x86_64.pkg.tar.zst
+sudo pacman -U ~/Downloads/omamesh-0.2.4-1-x86_64.pkg.tar.zst
 ```
 
 Type your password when asked, and press Enter to confirm.

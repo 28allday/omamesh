@@ -1,8 +1,8 @@
 # Maintainer: 28allday
 
 pkgname=omamesh
-pkgver=0.2.3
-pkgrel=2
+pkgver=0.2.4
+pkgrel=1
 pkgdesc='Turn photos into textured 3D models on your own NVIDIA or AMD GPU'
 arch=('x86_64')
 url='https://github.com/28allday/omamesh'
