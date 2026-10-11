@@ -5,12 +5,12 @@ caches() {
 
 post_install() {
   caches
-  echo "==> Omamesh needs its 3D engine: run 'omamesh-setup' in a terminal (as yourself, not sudo)."
+  echo "==> Omamesh needs its 3D engine: run 'omamesh --setup' in a terminal (as yourself, not sudo)."
 }
 
 post_upgrade() {
   caches
-  echo "==> Run 'omamesh-setup' again to bring the 3D engine up to date."
+  echo "==> Run 'omamesh --setup' again to bring the 3D engine up to date."
 }
 
 post_remove() {

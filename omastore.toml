@@ -1,0 +1,8 @@
+kind = "app"
+categories = ["Graphics", "3DGraphics"]
+icon = "pkgbuild/omamesh.svg"
+screenshots = ["docs/omamesh.png"]
+
+[linux.x86_64]
+asset = "omamesh-{version}-*-x86_64.pkg.tar.zst"
+exec = "usr/bin/omamesh"
