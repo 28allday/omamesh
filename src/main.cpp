@@ -2,6 +2,8 @@
 // driving the img2mesh (TRELLIS.2) engine.
 
 #include <QFileInfo>
+#include <QCoreApplication>
+#include <QDir>
 #include <QGuiApplication>
 #include <QFont>
 #include <QIcon>
@@ -9,6 +11,7 @@
 #include <QQmlContext>
 #include <QQmlError>
 #include <QQuickStyle>
+#include <QProcess>
 #include <QUrl>
 
 #include <cstdio>
@@ -23,6 +26,30 @@ int main(int argc, char *argv[]) {
             std::printf("omamesh %s\n", OMAMESH_VERSION);
             return 0;
         }
+    }
+
+    if (argc > 1 && (qstrcmp(argv[1], "--setup") == 0 ||
+                     qstrcmp(argv[1], "--img2mesh") == 0)) {
+        QCoreApplication app(argc, argv);
+        const bool setup = qstrcmp(argv[1], "--setup") == 0;
+        const QString script = QDir(app.applicationDirPath()).filePath(
+            setup ? QStringLiteral("../share/omamesh/engine/install.sh")
+                  : QStringLiteral("../share/omamesh/engine/bin/img2mesh"));
+        QProcess process;
+        process.setProcessChannelMode(QProcess::ForwardedChannels);
+        process.setInputChannelMode(QProcess::ForwardedInputChannel);
+        process.start(script, app.arguments().mid(2));
+        if (!process.waitForStarted()) {
+            std::fprintf(stderr, "Could not start %s: %s\n", setup ? "omamesh-setup" : "img2mesh",
+                         qPrintable(process.errorString()));
+            return 1;
+        }
+        if (!process.waitForFinished(-1)) {
+            std::fprintf(stderr, "%s failed: %s\n", setup ? "omamesh-setup" : "img2mesh",
+                         qPrintable(process.errorString()));
+            return 1;
+        }
+        return process.exitStatus() == QProcess::NormalExit ? process.exitCode() : 1;
     }
 
     QGuiApplication app(argc, argv);

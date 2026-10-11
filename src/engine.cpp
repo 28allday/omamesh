@@ -1,6 +1,8 @@
 #include "engine.h"
 
 #include <QFileInfo>
+#include <QCoreApplication>
+#include <QDir>
 #include <QJsonDocument>
 #include <QStandardPaths>
 
@@ -23,6 +25,10 @@ QString Engine::findCommand(const QProcessEnvironment &env) {
             return info.absoluteFilePath();
         return QStandardPaths::findExecutable(configured);
     }
+    const QString bundled = QDir(QCoreApplication::applicationDirPath()).filePath(
+        QStringLiteral("../share/omamesh/engine/bin/img2mesh"));
+    if (QFileInfo(bundled).isExecutable())
+        return bundled;
     return QStandardPaths::findExecutable(QStringLiteral("img2mesh"));
 }
 
@@ -44,7 +50,7 @@ bool Engine::ensureStarted(const QString &quality) {
     const QString command = findCommand(QProcessEnvironment::systemEnvironment());
     if (command.isEmpty()) {
         setState(State::Failed,
-                 QStringLiteral("The 3D engine isn't installed. Run omamesh-setup in a terminal."));
+                 QStringLiteral("The 3D engine isn't installed. Run omamesh --setup in a terminal."));
         return false;
     }
 

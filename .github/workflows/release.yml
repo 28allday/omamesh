@@ -12,6 +12,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   package:
@@ -58,3 +60,9 @@ jobs:
           files: |
             pkgbuild/omamesh-*.pkg.tar.zst
             pkgbuild/SHA256SUMS
+
+      - name: Attest the release package
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: pkgbuild/omamesh-*.pkg.tar.zst

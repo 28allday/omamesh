@@ -30,7 +30,10 @@ Intel graphics aren't supported yet — see
 
 Installing takes two steps: the app, then the 3D engine it runs.
 
-**1. The app.** Download the package from the
+**1. The app.** On Omarchy, open [Omamesh in OmaStore](omastore://28allday/omamesh)
+or find it by name in the store. Install the system dependencies when prompted.
+
+Alternatively, download the package from the
 [latest release](https://github.com/28allday/omamesh/releases/latest), then
 open a terminal with **Super + Enter** and install it:
 
@@ -52,7 +55,7 @@ and install the package again.
 **2. The engine.** In the same terminal, as yourself (no `sudo`):
 
 ```sh
-omamesh-setup
+omamesh --setup
 ```
 
 It checks your computer, then sets up everything the model needs in
@@ -66,11 +69,11 @@ is free but gated on Hugging Face, so setup walks you through it: make a free
 account, accept the licence on the
 [DINOv3 page](https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m),
 create a *Read* token and paste it in. Approval is usually quick; if it is
-still pending, stop and run `omamesh-setup` again later.
+still pending, stop and run `omamesh --setup` again later.
 
 If anything fails, the screen shows the last lines and
 `~/.local/share/omamesh/engine/install.log` has the rest. Running
-`omamesh-setup` again carries on where it stopped.
+`omamesh --setup` again carries on where it stopped.
 
 Then open Omamesh from the app launcher: press **Super + Space** and type
 **Omamesh**.
@@ -84,29 +87,37 @@ sudo pacman -S --needed base-devel git
 git clone https://github.com/28allday/omamesh.git ~/omamesh
 cd ~/omamesh
 ./bin/install
-omamesh-setup
+omamesh --setup
 ```
 
 ### Updating
 
 Install the newer package from the
 [latest release](https://github.com/28allday/omamesh/releases/latest) the same
-way, then run `omamesh-setup` once more. It only redoes what changed, so it is
+way, then run `omamesh --setup` once more. It only redoes what changed, so it is
 usually quick. If you built it yourself: `git pull`, `./bin/install`,
-`omamesh-setup`.
+`omamesh --setup`.
 
 Close and reopen Omamesh after updating. `omamesh --version` says which
 version you have.
 
 ### Uninstalling
 
+If installed from OmaStore:
+
 ```sh
-sudo pacman -R omamesh
-rm -rf ~/.local/share/omamesh
+omastore uninstall 28allday/omamesh
 ```
 
-The first removes the app; the second the engine (about 35 GB) and the list of
-models. Your models stay where they were made, beside their photos. The
+If installed with pacman:
+
+```sh
+sudo pacman -R omamesh
+```
+
+To also remove the engine (about 35 GB) and the list of models, delete
+`~/.local/share/omamesh`. Your models stay where they were made, beside their
+photos. The
 Hugging Face token is in `~/.cache/huggingface/token`; delete it too if you
 like.
 
@@ -192,7 +203,8 @@ height, or 100 mm tall if none is set. Exporting and **Open in Blender** need
 
 ## Command line
 
-The engine also works on its own, with no window:
+The engine also works on its own, with no window. When installed from OmaStore,
+use `omamesh --img2mesh` in place of `img2mesh`:
 
 ```sh
 img2mesh photo.jpg                 # writes photo.glb next to the photo

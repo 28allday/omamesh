@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Omamesh engine setup: installs img2mesh (TRELLIS.2 photo-to-3D) for this user.
 #
-#   omamesh-setup            set up, or update after a new Omamesh version
-#   omamesh-setup --no-test  skip the test model at the end
+#   omamesh --setup            set up, or update after a new Omamesh version
+#   omamesh --setup --no-test  skip the test model at the end
 #
 # Everything lands in one folder: ~/.local/share/omamesh/engine when installed
-# from the package, or beside this script in a writable checkout. It gets its
+# from the package, or beside this script in a checkout. It gets its
 # own Python, GPU toolkit (CUDA for NVIDIA, ROCm for AMD) and compiler (no sudo,
 # nothing in /usr). Re-running
 # is safe: finished steps are skipped, so an interrupted setup carries on, and
@@ -23,13 +23,12 @@ if [ "$(id -u)" -eq 0 ]; then
 fi
 
 CODE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-# Same rule as bin/img2mesh: a read-only install keeps its data per user.
+# Same rule as bin/img2mesh: installed code keeps its data per user.
 if [ -z "${IMG2MESH_HOME:-}" ]; then
-    if [ -w "$CODE" ]; then
-        IMG2MESH_HOME=$CODE
-    else
-        IMG2MESH_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/omamesh/engine"
-    fi
+    case "$CODE" in
+        */share/omamesh/engine) IMG2MESH_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/omamesh/engine" ;;
+        *) IMG2MESH_HOME=$CODE ;;
+    esac
 fi
 export IMG2MESH_HOME
 mkdir -p "$IMG2MESH_HOME"
@@ -434,8 +433,8 @@ link_command() {
     if [ "$HF_HOME" != "$ROOT/hf" ] && [ ! -e "$ROOT/hf" ]; then
         ln -s "$HF_HOME" "$ROOT/hf"
     fi
-    # The package puts img2mesh in /usr/bin; a checkout links its own.
-    [ -w "$CODE" ] || return 0
+    # Packages provide their own launcher; a checkout links its own.
+    case "$CODE" in */share/omamesh/engine) return 0 ;; esac
     mkdir -p "$HOME/.local/bin"
     ln -sfn "$ENGINE" "$HOME/.local/bin/img2mesh"
     case ":$PATH:" in

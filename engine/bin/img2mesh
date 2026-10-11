@@ -8,15 +8,14 @@
 set -eo pipefail
 CODE="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 if [ -z "${IMG2MESH_HOME:-}" ]; then
-    if [ -w "$CODE" ]; then
-        IMG2MESH_HOME=$CODE
-    else
-        IMG2MESH_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/omamesh/engine"
-    fi
+    case "$CODE" in
+        */share/omamesh/engine) IMG2MESH_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/omamesh/engine" ;;
+        *) IMG2MESH_HOME=$CODE ;;
+    esac
 fi
 export IMG2MESH_HOME
 if [ ! -x "$IMG2MESH_HOME/env/bin/python" ]; then
-    echo "The 3D engine isn't set up yet. Run omamesh-setup in a terminal." >&2
+    echo "The 3D engine isn't set up yet. Run omamesh --setup in a terminal." >&2
     exit 3
 fi
 export HF_HOME="${IMG2MESH_HF_HOME:-$IMG2MESH_HOME/hf}"
